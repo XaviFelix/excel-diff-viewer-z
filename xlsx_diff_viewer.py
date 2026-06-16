@@ -17,7 +17,7 @@ def display_diff(diff):
         old_row = diff.loc[(orig_idx, "Oldest")]
         new_row = diff.loc[(orig_idx, "Newest")]
 
-        old_cells = [str(orig_idx), "Oldest"]
+        old_cells = [str(orig_idx + 2), "Oldest"]
         new_cells = ["", "Newest"]
 
         for col in diff.columns:
@@ -38,8 +38,23 @@ def display_diff(diff):
     console.print(table)
 
 
+def display_added(df):
+    table = Table(show_header=True, header_style="bold green")
+    table.add_column("Row", style="dim")
+    for col in df.columns:
+        table.add_column(str(col))
+
+    for idx, row in df.iterrows():
+        cells = [str(idx + 2)] + [f"[green]{str(row[col])}[/green]" for col in df.columns]
+        table.add_row(*cells)
+
+    console.print(table)
+
+
 def get_difference(df_old, df_new):
     changed_cols = [col for col in df_old.columns if not df_old[col].equals(df_new[col])]
+    if not changed_cols:
+        return None
     diff = df_old.compare(df_new, keep_equal=True, align_axis=0, result_names=("Oldest", "Newest"))
     return diff[changed_cols]
 
@@ -65,15 +80,25 @@ def main():
 
         df_old, df_new = oldest[sheet], newest[sheet]
 
+        if list(df_old.columns) != list(df_new.columns):
+            console.print("  [yellow]Column mismatch — cannot compare[/yellow]")
+            continue
+
         if df_old.equals(df_new):
             console.print("  [dim]No differences[/dim]")
             continue
 
-        if df_old.shape != df_new.shape or list(df_old.columns) != list(df_new.columns):
-            console.print(f"  [yellow]Shape mismatch: {df_old.shape} vs {df_new.shape} — cannot compare[/yellow]")
-            continue
+        min_len = min(len(df_old), len(df_new))
+        diff = get_difference(
+            df_old.iloc[:min_len].reset_index(drop=True),
+            df_new.iloc[:min_len].reset_index(drop=True),
+        )
+        if diff is not None:
+            display_diff(diff)
 
-        display_diff(get_difference(df_old, df_new))
+        if len(df_new) > len(df_old):
+            console.print("  [green bold]Added rows [yellow bold](disregard column titles, start from the beginning)[/yellow bold]:[/green bold]")
+            display_added(df_new.iloc[len(df_old):])
 
 
 if __name__ == "__main__":
