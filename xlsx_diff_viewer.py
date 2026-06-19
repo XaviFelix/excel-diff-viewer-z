@@ -1,10 +1,12 @@
+#TODO: Logic error when a row is added in-between (works but throws everything off entirely)
+#NOTE: Works fine if row is added at the end though
+
 import argparse
 import pandas as pd
 from rich.console import Console
 from rich.table import Table
 
 console = Console()
-
 
 def display_diff(diff):
     table = Table(show_header=True, header_style="bold white")
